@@ -16,7 +16,15 @@ const noteSchema = new Schema<INotes>({
     tags: {
         label: { type: String, required: true },
         color: {type: String, default: 'grey'}
+    },
+    user: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        required: true
     }
+}, {
+    versionKey: false,
+    timestamps: true
 });
 
 const Note = mongoose.model('Note', noteSchema)

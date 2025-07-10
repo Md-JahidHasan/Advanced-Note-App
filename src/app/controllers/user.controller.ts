@@ -1,18 +1,68 @@
 import express, { Request, Response }  from "express"
 import { User } from "../models/user.model";
+import z from "zod";
+
+import bcrypt from "bcryptjs";
+
+
 
 export const usersRoute = express.Router()
 
+const userAddressSchema = z.object({
+    city: z.string(),
+    street: z.string(),
+    zip: z.number()
+})
+
+const createUserZodSchema = z.object({
+    firstName: z.string(),
+    lastName: z.string(),
+    age: z.number(),
+    email: z.string(),
+    password: z.string(),
+    role: z.string().optional(),
+    address: userAddressSchema
+})
+
 usersRoute.post("/create-user", async(req: Request, res: Response) => {
-    const body = req.body;
+    try {
+        const body = createUserZodSchema.parse(req.body);
 
-    const user = await User.create(body);
+        // console.log(body, "zod body");
 
-    res.status(201).json({
-        success: true,
-        message: "User creatd successfully",
-        user: user
-    })
+        // const password = await bcrypt.hash(body.password, 10);
+        
+
+        // req.body= password
+        
+        
+        
+
+        // const password = await User.hashPassword(body.password);
+
+        // console.log(password, "static");
+
+        // body.password = password 
+
+        const user = await User.create(body);
+
+
+        res.status(201).json({
+          success: true,
+            message: "User creatd successfully",
+          
+          user: user,
+        });
+    } catch (error: any) {
+
+        res.status(400).json({
+          success: false,
+            message: error.message,
+          error
+          
+        });
+        
+    }
 
 
 })

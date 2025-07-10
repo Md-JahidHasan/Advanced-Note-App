@@ -1,7 +1,27 @@
-import { model, Schema } from "mongoose";
-import { IUser } from "../interfaces/user.interface";
+import { Model, model, Schema } from "mongoose";
+import { IAddress, IUser, userInstanceMethod, userStaticMethod } from "../interfaces/user.interface";
+import validator from "validator";
+import bcrypt from "bcryptjs";
+import { log } from "console";
 
-const userSchema = new Schema<IUser>({
+const userAddressSchema = new Schema<IAddress>(
+  {
+    city: {
+      type: String,
+    },
+    street: {
+      type: String,
+    },
+    zip: {
+      type: Number,
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
+const userSchema = new Schema<IUser, userStaticMethod, userInstanceMethod>({
   firstName: {
     type: String,
     required: true,
@@ -25,15 +45,16 @@ const userSchema = new Schema<IUser>({
     required: true,
     trim: true,
     lowercase: true,
-      unique: true,
-      validate: {
-          validator: function (v) {
-              return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
-          },
-          message: function (props) {
-              return`Email ${props.value} is not valid`
-          }
-    }
+    unique: true,
+    //   validate: {
+    //       validator: function (v) {
+    //           return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+    //       },
+    //       message: function (props) {
+    //           return`Email ${props.value} is not valid`
+    //       }
+      // }
+      validate: [validator.isEmail, "Invalid Email {VALUE}"]
     
   },
   password: {
@@ -47,8 +68,42 @@ const userSchema = new Schema<IUser>({
         message: "Role is not valid. Got {VALUE} role"
     },
     default: "user",
-  },
+    },
+    address: userAddressSchema
+}, {
+    versionKey: false,
+    timestamps:true
 });
 
+userSchema.method("hashPassword", async function (plainPassword) {
+    const password = await bcrypt.hash(plainPassword, 10);
 
-export const User = model("User", userSchema);
+    
+    
+    return password;
+   
+    
+});
+
+userSchema.static("hashPassword", async function (plainPassword) {
+    const password = await bcrypt.hash(plainPassword, 10);
+
+    return password
+})
+
+userSchema.pre("save", async function () {
+
+    console.log("inside pre save hook");
+    this.password = await bcrypt.hash(this.password, 10);
+    
+    console.log(this);
+    
+})
+
+userSchema.post("save", function () {
+    console.log("insidepost save hook");
+    
+})
+
+
+export const User = model<IUser, userStaticMethod>("User", userSchema);
